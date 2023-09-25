@@ -13,18 +13,18 @@ import com.sun.net.httpserver.HttpServer;
 public class Server {
 
     private static final int PORT = 8001;
-    private Map<Integer, RouteHandler> routeHandlers = new HashMap<>();
+    private static Map<Integer, RouteHandler> routeHandlers = new HashMap<>();
 
-    public void addRoute(RouteHandler routeHandler) {
-        int routeIndex = this.routeHandlers.size();
-        this.routeHandlers.put(routeIndex, routeHandler);
+    public static void addRoute(RouteHandler routeHandler) {
+        int routeIndex = Server.routeHandlers.size();
+        Server.routeHandlers.put(routeIndex, routeHandler);
     }
 
-    public void start() throws IOException {
+    public static void start() throws IOException {
 
         HttpServer httpServer = HttpServer.create(new InetSocketAddress("localhost", PORT), 0);
 
-        List<RouteHandler> routeHandlersList = this.routeHandlers.values().stream()
+        List<RouteHandler> routeHandlersList = Server.routeHandlers.values().stream()
                 .collect(Collectors.toList());
         for (RouteHandler routeHandler : routeHandlersList) {
             httpServer.createContext(routeHandler.getPath(), exchange -> {
@@ -44,20 +44,20 @@ public class Server {
 
     }
 
-    private void sendResponseWithHandler(RouteHandler routeHandler, HttpExchange exchange) throws IOException {
+    private static void sendResponseWithHandler(RouteHandler routeHandler, HttpExchange exchange) throws IOException {
         String response = routeHandler.handleRequest(exchange.getRequestURI().toString());
         exchange.sendResponseHeaders(200, response.getBytes().length);
         exchange.getResponseBody().write(response.getBytes());
         exchange.close();
     }
 
-    private void logIncomingRequest(HttpExchange exchange) {
+    private static void logIncomingRequest(HttpExchange exchange) {
         System.out.println(String.format("Received request for path %s with method %s for handler path %s",
                 exchange.getRequestURI().toString(), exchange.getRequestMethod(),
                 exchange.getHttpContext().getPath()));
     }
 
-    private boolean send404IfNoMatchingPath(HttpExchange exchange, RouteHandler routeHandler) throws IOException {
+    private static boolean send404IfNoMatchingPath(HttpExchange exchange, RouteHandler routeHandler) throws IOException {
         if (!exchange.getRequestURI().getPath().equals(routeHandler.getPath())) {
             exchange.sendResponseHeaders(404, 0);
             exchange.close();
