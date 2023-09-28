@@ -7,3 +7,7 @@ edition = "2021"
 
 [dependencies]
 jni = {version="0.21.1", features=["invocation"]}
+
+[lib]
+crate_type = ["cdylib"]
+name = "shared_server_rs"
