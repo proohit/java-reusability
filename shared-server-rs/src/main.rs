@@ -4,6 +4,56 @@ use jni::{
     signature::{Primitive, ReturnType},
     InitArgsBuilder, JNIEnv,
 };
+use std::collections::HashMap;
+
+use jni::{
+    objects::{JClass, JString},
+    sys::jint,
+};
+use once_cell::sync::Lazy;
+pub struct RequestHandler {
+    pub path: String,
+    pub handler: fn(String) -> String,
+}
+pub type RequestHandlerMap = HashMap<i32, RequestHandler>;
+
+pub static mut ROUTES: Lazy<RequestHandlerMap> = Lazy::new(|| RequestHandlerMap::new());
+
+#[no_mangle]
+pub extern "system" fn Java_shared_server_Server_handle_1request_1external<'local>(
+    // Notice that this `env` argument is mutable. Any `JNIEnv` API that may
+    // allocate new object references will take a mutable reference to the
+    // environment.
+    mut env: JNIEnv<'local>,
+    // this is the class that owns our static method. Not going to be used, but
+    // still needs to have an argument slot
+    _class: JClass<'local>,
+    fn_id: jint,
+    req: JString<'local>,
+) -> JString<'local> {
+    // First, we have to get the string out of java. Check out the `strings`
+    // module for more info on how this works.
+    let req_rs: String = env
+        .get_string(&req)
+        .expect("Couldn't get java string!")
+        .into();
+
+    let fn_id_rs: i32 = fn_id as i32;
+    println!("id: {}, req: {}", fn_id_rs, req_rs);
+    unsafe {
+        println!("Count of routes {}", ROUTES.len());
+        ROUTES.values().for_each(|req_handler| {
+            println!("{}", req_handler.path);
+        });
+    }
+    // Then we have to create a new java string to return. Again, more info
+    // in the `strings` module.
+    let output = env
+        .new_string(format!("Hello, {}!", req_rs))
+        .expect("Couldn't create java string!");
+    output
+}
+
 use std::sync::{Arc, Once};
 
 use jni::{AttachGuard, JNIVersion, JavaVM};
@@ -85,7 +135,16 @@ fn main() {
     .i()
     .unwrap();
     println!("registered handler {}", handler_id);
-    
+    unsafe {
+        ROUTES.insert(
+            handler_id,
+            RequestHandler {
+                path: "/test".to_string(),
+                handler: |req| req,
+            },
+        );
+    }
+
     let start_method_id = env
         .get_static_method_id(&server_class, "start", "(Z)V")
         .unwrap();
