@@ -2,7 +2,8 @@ use jni::{
     errors::Result,
     objects::{JObject, JValue},
     signature::{Primitive, ReturnType},
-    InitArgsBuilder, JNIEnv,
+    sys::jstring,
+    InitArgsBuilder, JNIEnv, NativeMethod,
 };
 use std::collections::HashMap;
 
@@ -52,6 +53,21 @@ pub extern "system" fn Java_shared_server_Server_handle_1request_1external<'loca
         .new_string(format!("Hello, {}!", req_rs))
         .expect("Couldn't create java string!");
     output
+}
+
+fn native_apply(mut env: JNIEnv, _class: JClass, input: JString) -> jstring {
+    // Convert the Java input string to a Rust string
+    let input_str: String = env.get_string(&input).expect("Invalid string").into();
+
+    // Perform your processing on the input here.
+    // For example, you can create a result string.
+    let result_str = format!("Hello, {}", input_str);
+
+    // Convert the result string back to a Java string
+    let result_jstring = env
+        .new_string(result_str)
+        .expect("Couldn't create Java string");
+    **result_jstring
 }
 
 use std::sync::{Arc, Once};
@@ -106,9 +122,20 @@ fn main() {
 
     let server_class = env.find_class("shared/server/Server").unwrap();
 
+    /* get add route method id */
+
+    // let add_route_method_id = env
+    //     .get_static_method_id(&server_class, "addRoute", "(Ljava/lang/String;)I")
+    //     .unwrap();
     let add_route_method_id = env
-        .get_static_method_id(&server_class, "addRoute", "(Ljava/lang/String;)I")
+        .get_static_method_id(
+            &server_class,
+            "addRoute",
+            "(Lshared/server/RouteHandlerNative;)V",
+        )
         .unwrap();
+
+    /* construct some path string */
     let string_path = env.new_string("/test").unwrap();
     let string_class = env.find_class("java/lang/String").unwrap();
     let ctor_method_id = env
@@ -123,27 +150,65 @@ fn main() {
     }
     .unwrap();
 
-    let handler_id = unsafe {
-        env.call_static_method_unchecked(
-            &server_class,
-            add_route_method_id,
-            ReturnType::Primitive(Primitive::Int),
+    /* register native method for apply */
+    let method = NativeMethod {
+        name: "apply".into(),
+        sig: "(Ljava/lang/String;)Ljava/lang/String;".into(),
+        fn_ptr: native_apply as *mut std::ffi::c_void,
+    };
+    let router_handler_native_class = env.find_class("shared/server/RouteHandlerNative").unwrap();
+    let _ = env.register_native_methods(&router_handler_native_class, &[method]);
+    let router_handler_ctor = env
+        .get_method_id(
+            &router_handler_native_class,
+            "<init>",
+            "(Ljava/lang/String;)V",
+        )
+        .unwrap();
+
+    /* construct router handler object */
+    let router_handler = unsafe {
+        env.new_object_unchecked(
+            &router_handler_native_class,
+            router_handler_ctor,
             &[JValue::Object(&j_string_path).as_jni()],
         )
     }
-    .unwrap()
-    .i()
     .unwrap();
-    println!("registered handler {}", handler_id);
-    unsafe {
-        ROUTES.insert(
-            handler_id,
-            RequestHandler {
-                path: "/test".to_string(),
-                handler: |req| req,
-            },
-        );
+
+    /* add route handler to server */
+    // let handler_id = unsafe {
+    //     env.call_static_method_unchecked(
+    //         &server_class,
+    //         add_route_method_id,
+    //         ReturnType::Primitive(Primitive::Int),
+    //         &[JValue::Object(&j_string_path).as_jni()],
+    //     )
+    // }
+    // .unwrap()
+    // .i()
+    // .unwrap();
+    let _ = unsafe {
+        env.call_static_method_unchecked(
+            &server_class,
+            add_route_method_id,
+            ReturnType::Primitive(Primitive::Void),
+            &[JValue::Object(&router_handler).as_jni()],
+        )
     }
+    .unwrap()
+    .v()
+    .unwrap();
+    // println!("registered handler {}", handler_id);
+    // unsafe {
+    //     ROUTES.insert(
+    //         handler_id,
+    //         RequestHandler {
+    //             path: "/test".to_string(),
+    //             handler: |req| req,
+    //         },
+    //     );
+    // }
 
     let start_method_id = env
         .get_static_method_id(&server_class, "start", "(Z)V")
