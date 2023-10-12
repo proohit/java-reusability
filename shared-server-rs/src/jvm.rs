@@ -10,26 +10,7 @@ use jni::JavaVM;
 
 use std::sync::Arc;
 
-use jni::errors::Result;
-
-use jni::JNIEnv;
-
-pub fn print_exception(env: &JNIEnv) {
-    let exception_occurred = env.exception_check().unwrap_or_else(|e| panic!("{:?}", e));
-    if exception_occurred {
-        env.exception_describe()
-            .unwrap_or_else(|e| panic!("{:?}", e));
-    }
-}
-
-pub fn unwrap<T>(res: Result<T>, env: &JNIEnv) -> T {
-    res.unwrap_or_else(|e| {
-        print_exception(env);
-        panic!("{:#?}", e);
-    })
-}
-
-pub fn jvm() -> &'static Arc<JavaVM> {
+fn jvm() -> &'static Arc<JavaVM> {
     static mut JVM: Option<Arc<JavaVM>> = None;
     static INIT: Once = Once::new();
 
