@@ -19,7 +19,6 @@ fn jvm() -> &'static Arc<JavaVM> {
             .version(JNIVersion::V8)
             .option("-Xcheck:jni")
             .option("-Djava.class.path=/home/master/workspace/java-reusability/shared-server/lib/build/classes/java/main")
-            .option("-Djava.library.path=/home/master/workspace/java-reusability/shared-server-rs/target/debug")
             .build()
             .unwrap_or_else(|e| panic!("{:#?}", e));
 
