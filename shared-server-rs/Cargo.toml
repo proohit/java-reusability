@@ -8,8 +8,3 @@ edition = "2021"
 [dependencies]
 jni = {version="0.21.1", features=["invocation"]}
 once_cell = "1.17.0"
-
-[lib]
-crate_type = ["cdylib"]
-path = "src/main.rs"
-name = "shared_server_rs"

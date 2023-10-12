@@ -16,29 +16,21 @@ public class Server {
 
     private static final int PORT = 8001;
     private static Map<Integer, RouteHandler> routeHandlers = new HashMap<>();
-    // private static Map<String, Integer> routeHandlersExt = new HashMap<>();
-    private static Map<Integer, RouteHandlerNative> routeHandlersExt = new HashMap<>();
+    private static Map<String, Integer> routeHandlersExt = new HashMap<>();
 
-    private static native String handle_request_external(int id, String req);
+    public native static String handle_request_external(int path, String request);
 
     public static void addRoute(RouteHandler routeHandler) {
         int routeIndex = Server.routeHandlers.size();
         Server.routeHandlers.put(routeIndex, routeHandler);
     }
 
-    public static void addRoute(RouteHandlerNative routeHandler) {
+    public static int addRoute(String path) {
         int routeIndex = Server.routeHandlersExt.size();
-        Server.routeHandlersExt.put(routeIndex, routeHandler);
-        System.out.println(String.format("[JAVA] registered handler path %s",
-                routeHandler.path));
+        Server.routeHandlersExt.put(path, routeIndex);
+        System.out.println(String.format("[JAVA] registered handler path %s", path));
+        return routeIndex;
     }
-
-    // public static int addRoute(String path) {
-    // int routeIndex = Server.routeHandlersExt.size();
-    // Server.routeHandlersExt.put(path, routeIndex);
-    // System.out.println(String.format("[JAVA] registered handler path %s", path));
-    // return routeIndex;
-    // }
 
     public static void start(boolean lib) throws IOException {
 
@@ -49,42 +41,24 @@ public class Server {
         HttpServer httpServer = HttpServer.create(new InetSocketAddress("localhost", PORT), 0);
 
         if (lib) {
-            Set<Entry<Integer, RouteHandlerNative>> routeHandlersExtList = Server.routeHandlersExt.entrySet();
-            for (Entry<Integer, RouteHandlerNative> routeHandler : routeHandlersExtList) {
+            Set<Entry<String, Integer>> routeHandlersExtList = Server.routeHandlersExt.entrySet();
+            for (Entry<String, Integer> routeHandler : routeHandlersExtList) {
                 System.out.println(String.format("[JAVA] registering context for %s",
                         routeHandler.getKey()));
-                httpServer.createContext(routeHandler.getValue().path, exchange -> {
+                httpServer.createContext(routeHandler.getKey(), exchange -> {
                     logIncomingRequest(exchange);
-                    boolean matches = exchange.getRequestURI().getPath().equals(routeHandler.getValue().path);
-                    System.out.println(matches);
+                    boolean matches = exchange.getRequestURI().getPath().equals(routeHandler.getKey());
                     if (matches) {
                         String request = new String(exchange.getRequestBody().readAllBytes());
-                        String response = routeHandler.getValue().apply(request);
+                        System.out.println(String.format("[JAVA] calling handler for %s for request %s",
+                                routeHandler.getValue().intValue(), request));
+                        String response = Server.handle_request_external(routeHandler.getValue().intValue(), request);
                         exchange.sendResponseHeaders(200, response.getBytes().length);
                         exchange.getResponseBody().write(response.getBytes());
                         exchange.close();
                     }
                 });
             }
-            // Set<Entry<String, Integer>> routeHandlersExtList =
-            // Server.routeHandlersExt.entrySet();
-            // for (Entry<String, Integer> routeHandler : routeHandlersExtList) {
-            // System.out.println(String.format("[JAVA] registering context for %s",
-            // routeHandler.getKey()));
-            // httpServer.createContext(routeHandler.getKey(), exchange -> {
-            // logIncomingRequest(exchange);
-            // boolean matches =
-            // exchange.getRequestURI().getPath().equals(routeHandler.getKey());
-            // System.out.println(matches);
-            // if (matches) {
-            // String request = new String(exchange.getRequestBody().readAllBytes());
-            // String response = handle_request_external(routeHandler.getValue(), request);
-            // exchange.sendResponseHeaders(200, response.getBytes().length);
-            // exchange.getResponseBody().write(response.getBytes());
-            // exchange.close();
-            // }
-            // });
-            // }
         } else {
             List<RouteHandler> routeHandlersList = Server.routeHandlers.values().stream()
                     .collect(Collectors.toList());
