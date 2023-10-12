@@ -1,10 +1,10 @@
+use crate::jvm;
+use crate::server;
 use jni::{
     objects::{JClass, JString},
     sys::{jint, jstring},
     JNIEnv, NativeMethod,
 };
-
-use crate::{jvm, server::ROUTES};
 
 fn native_apply(mut env: JNIEnv, _class: JClass, fn_id: jint, request: JString) -> jstring {
     let input_str: String = match env.get_string(&request) {
@@ -12,7 +12,7 @@ fn native_apply(mut env: JNIEnv, _class: JClass, fn_id: jint, request: JString) 
         Err(_) => "".to_string(),
     };
     let fn_id_rs: i32 = fn_id as i32;
-    let response = unsafe { (ROUTES.get(&fn_id_rs).unwrap().handle)(input_str) };
+    let response = unsafe { (server::ROUTES.get(&fn_id_rs).unwrap().handle)(input_str) };
     let result_jstring = env
         .new_string(response)
         .expect("Couldn't create Java string");

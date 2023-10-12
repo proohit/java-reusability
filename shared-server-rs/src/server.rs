@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 
+use crate::jvm;
+use crate::module_wrapper;
 use jni::objects::JValue;
 use once_cell::sync::Lazy;
-
-use crate::{jvm, module_wrapper::register_native_method};
 type HandleFn = fn(String) -> String;
 
 pub struct RequestHandler {
@@ -46,7 +46,7 @@ pub fn add_route(handler: RequestHandler) {
 pub fn start() {
     let mut env = jvm::attach_current_thread();
     let server_class = env.find_class("shared/server/Server").unwrap();
-    register_native_method();
+    module_wrapper::register_native_method();
 
     let _ = env
         .call_static_method(&server_class, "start", "(Z)V", &[JValue::Bool(1)])

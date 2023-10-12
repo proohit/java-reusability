@@ -1,4 +1,4 @@
-use server::{start, RequestHandler};
+use server::RequestHandler;
 
 mod jvm;
 mod module_wrapper;
@@ -15,7 +15,7 @@ fn main() {
         handle: |_| "test2".to_string(),
     });
 
-    start();
+    server::start();
 
     loop {}
 }
