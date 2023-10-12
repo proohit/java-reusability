@@ -34,10 +34,6 @@ public class Server {
 
     public static void start(boolean lib) throws IOException {
 
-        if (lib) {
-            System.loadLibrary("shared_server_rs");
-        }
-
         HttpServer httpServer = HttpServer.create(new InetSocketAddress("localhost", PORT), 0);
 
         if (lib) {
