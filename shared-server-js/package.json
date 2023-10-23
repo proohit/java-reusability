@@ -1,0 +1,18 @@
+{
+  "name": "shared-server-js",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "type": "module",
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "java": "^0.13.0"
+  },
+  "devDependencies": {
+    "@types/java": "^0.9.4"
+  }
+}
