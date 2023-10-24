@@ -1,0 +1,4 @@
+golang.org/x/sys v0.11.0 h1:eG7RXZHdqOJ1i+0lgLgCpSXAp6M3LYlAo6osgSi0xOM=
+golang.org/x/sys v0.11.0/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
+tekao.net/jnigi v0.0.0-20230808062657-e963d4310732 h1:atDfSYcjhW/indBk+YFEPPQkXZIKIcRarSkCJjkWlT4=
+tekao.net/jnigi v0.0.0-20230808062657-e963d4310732/go.mod h1:Kw9CJWDQaFlNQiW8gTSKsjhFG55BeQPafmeiokXnBJE=
